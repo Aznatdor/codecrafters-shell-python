@@ -28,7 +28,10 @@ def _cd(rawDirName):
     else:
         dirName = rawDirName[0]
 
-    os.chdir(dirName)
+    try:
+        os.chdir(dirName)
+    except:
+        print(f"cd: {dirName}: No such file or directory")
 
 
 def echo(arguments):
