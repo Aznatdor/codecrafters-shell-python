@@ -1,13 +1,16 @@
 import sys
 
-
 def main():
-    command = "dummy"                   # dummy command to make REPL loop more concise
-
-    while command:
+    while True:
         sys.stdout.write("$ ")
-        command = input()
-        print(f"{command}: not found")
+        arguments = input()
+        argumentsList = arguments.split()   # simple parsing
+        command = argumentsList[0]
+
+        if command == "exit":
+            sys.exit(0)
+
+        print(f"{arguments}: not found")
 
 
 if __name__ == "__main__":
