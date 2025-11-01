@@ -1,15 +1,34 @@
 import sys
+import os
+
+PATH = os.environ["PATH"]
+PATH_LIST = PATH.split(os.pathsep)
 
 
 def echo(arguments):
     print(arguments)
 
+
 def _type(arguments):
     commandName = arguments
     if commandName in COMMANDS:
         print(f"{commandName} is a shell builtin")
+        return
     else:
-        print(f"{arguments}: not found")
+        for d in PATH_LIST:
+            # Such directory might not exist
+            try:
+                dirList = os.listdir(d)
+
+                # Check that the directory containts the file and that the file can be executed
+                fullPath = d + "/" + commandName
+                if commandName in dirList and os.access(fullPath, os.X_OK):
+                    print(f"{commandName} is {fullPath}")
+                    return
+            except: pass
+            
+    print(f"{arguments}: not found")
+
 
 def _exit(arg):
     sys.exit(0)
