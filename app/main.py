@@ -1,19 +1,40 @@
 import sys
 
+
+def echo(arguments):
+    print(arguments)
+
+def _type(arguments):
+    commandName = arguments
+    if commandName in COMMANDS:
+        print(f"{commandName} is a shell builtin")
+    else:
+        print(f"{arguments}: not found")
+
+def _exit(arg):
+    sys.exit(0)
+        
+COMMANDS = {
+        "exit": _exit,
+        "echo": echo,
+        "type": _type,
+        }
+
 def main():
     while True:
         sys.stdout.write("$ ")
         rawArguments = input()
 
-        spaceInd = rawArguments.find(" ")
-        command, arguments = rawArguments[:spaceInd], rawArguments[spaceInd+1:]
-
-        if command == "exit":
-            sys.exit(0)
-        elif command == "echo":
-            print(arguments)
+        if " " in rawArguments:
+            spaceInd = rawArguments.find(" ")
+            command, arguments = rawArguments[:spaceInd], rawArguments[spaceInd+1:]
         else:
-            print(f"{arguments}: not found")
+            command, arguments = rawArguments, []
+
+        if command in COMMANDS:
+            COMMANDS[command](arguments)
+        else:
+            print(f"{command}: not found")
 
 
 if __name__ == "__main__":
