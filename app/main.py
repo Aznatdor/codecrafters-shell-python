@@ -2,11 +2,12 @@ import sys
 
 
 def main():
-    # TODO: Uncomment the code below to pass the first stage
-    sys.stdout.write("$ ")
-    command = input()
-    print(f"{command}: not found")
-    pass
+    command = "dummy"                   # dummy command to make REPL loop more concise
+
+    while command:
+        sys.stdout.write("$ ")
+        command = input()
+        print(f"{command}: not found")
 
 
 if __name__ == "__main__":
