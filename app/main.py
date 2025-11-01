@@ -6,6 +6,30 @@ import subprocess # to execute code
 PATH = os.environ["PATH"]
 PATH_LIST = PATH.split(os.pathsep)
 
+def _pwd(a):
+    """
+        Prints current working directory
+
+        ARGS:
+            a: anything - argument for compatability
+    """
+    print(os.getcwd())
+
+
+def _cd(rawDirName):
+    """
+        Changes current directory
+
+        ARGS:
+            rawDirName: List[str] - relative path to the current directory (list of length 1)
+    """
+    if rawDirName[0] == "~":
+        dirName = os.environ["HOME"]
+    else:
+        dirName = rawDirName[0]
+
+    os.chdir(dirName)
+
 
 def echo(arguments):
     print(' '.join(arguments))
@@ -62,6 +86,8 @@ COMMANDS = {
         "exit": _exit,
         "echo": echo,
         "type": _type,
+        "pwd": _pwd,
+        "cd": _cd
         }
 
 def main():
