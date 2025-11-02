@@ -33,7 +33,12 @@ def parse(rawArgs: str) -> list[str]:
             else:
                 currentArg += char
         else:
-            if char == "'":
+            if char == "\\":
+                # Can't handle invalid quotes
+                currentArg += rawArgs[i+1]
+                i += 2
+                continue
+            elif char == "'":
                 inSingleQuote = True
             elif char == '"':
                 inDoubleQuote = True
