@@ -29,6 +29,10 @@ def parse(rawArgs: str) -> list[str]:
             else:
                 currentArg += char
         elif inDoubleQuote:
+            if char == '\\' and rawArgs[i+1] in ['"', '\\', '$', '`']:
+                currentArg += rawArgs[i+1]
+                i += 2
+                continue
             if char == '"': inDoubleQuote = False
             else:
                 currentArg += char
