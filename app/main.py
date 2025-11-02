@@ -17,20 +17,32 @@ def parse(rawArgs: str) -> list[str]:
     args = []
     currentArg = ""
 
-    inQuote = False
+    inSingleQuote = False
+    inDoubleQuote = False
 
     i = 0
     while i < len(rawArgs):
         char = rawArgs[i]
 
-        # Switch state
-        if char == "'": inQuote = not inQuote
-        elif char == " " and not inQuote:
-            if currentArg:
-                args.append(currentArg)
-                currentArg = ""
+        if inSingleQuote:
+            if char == "'": inSingleQuote = False
+            else:
+                currentArg += char
+        elif inDoubleQuote:
+            if char == '"': inDoubleQuote = False
+            else:
+                currentArg += char
         else:
-            currentArg += char
+            if char == "'":
+                inSingleQuote = True
+            elif char == '"':
+                inDoubleQuote = True
+            elif char == " ":
+                if currentArg:
+                    args.append(currentArg)
+                    currentArg = ""
+            else:
+                currentArg += char
 
         i += 1
 
