@@ -3,30 +3,66 @@ import os
 import subprocess # to execute code
 
 
-PATH = os.environ["PATH"]
-PATH_LIST = PATH.split(os.pathsep)
+# =============================================== Parsing functions ===============================
 
-def _pwd(a):
+def parse(rawArgs: str) -> list[str]:
+    """
+        Parses argument string for 'echo' built in
+        
+        ARGS:
+            rawArgs: str - string with argument values
+        RETURNS:
+            args: list[str] - list of arguments
+    """
+    args = []
+    currentArg = ""
+
+    inQuote = False
+
+    i = 0
+    while i < len(rawArgs):
+        char = rawArgs[i]
+
+        # Switch state
+        if char == "'": inQuote = not inQuote
+        elif char == " " and not inQuote:
+            if currentArg:
+                args.append(currentArg)
+                currentArg = ""
+        else:
+            currentArg += char
+
+        i += 1
+
+    # Add the last arguments
+    if currentArg: args.append(currentArg)
+
+    return args
+
+# ============================================= Builtin functions ==================================
+
+
+def _pwd(args: list[str]) -> None:
     """
         Prints current working directory
 
         ARGS:
-            a: anything - argument for compatability
+            args: list[str] - for compatability
     """
     print(os.getcwd())
 
 
-def _cd(rawDirName):
+def _cd(args: list[str]) -> None:
     """
         Changes current directory
 
         ARGS:
-            rawDirName: List[str] - relative path to the current directory (list of length 1)
+            args: list[str] - relative path to the current directory or empty list
     """
-    if rawDirName[0] == "~":
+    if not args or args[0] == "~":
         dirName = os.environ["HOME"]
     else:
-        dirName = rawDirName[0]
+        dirName = args[0]
 
     try:
         os.chdir(dirName)
@@ -34,11 +70,19 @@ def _cd(rawDirName):
         print(f"cd: {dirName}: No such file or directory")
 
 
-def echo(arguments):
-    print(' '.join(arguments))
+def echo(args: list[str]) -> None:
+    """
+        Prints its arguments into stdout
+
+        ARGS:
+            args: list[str] - strings to print
+    """
+
+    outputLine = ' '.join(args)
+    print(outputLine)
 
 
-def locate(fileName):
+def locate(fileName) -> str | None:
     """
         Locates executable file in directories defined in PATH variable
         
@@ -53,26 +97,26 @@ def locate(fileName):
         # Such directory might not exist
         try:
             dirList = os.listdir(d)
-            fullPath = d + "/" + fileName
+            fullPath = os.path.join(d, fileName)
 
             # Check that the file exists and that it can be executed
-            if os.access(fullPath, os.F_OK) and os.access(fullPath, os.X_OK):
+            if os.path.isfile(fullPath) and os.access(fullPath, os.X_OK):
                 return fullPath
         except: pass
 
     return None
 
 
-def _type(arguments):
+def _type(args: list[str]) -> None:
     """
         Prints type of a program, i.g. if it is a builtin one or can be found
         in one of the directory specified in PATH variable
 
         ARGS:
-            arguments: List[str] - list of arguments. Here, it is list of lenth 1 with command name
+            args: list[str] - list of arguments. Here, it is list of lenth 1 with command name
     """
 
-    commandName = arguments[0]
+    commandName = args[0]
 
     if commandName in COMMANDS:
         print(f"{commandName} is a shell builtin")
@@ -82,9 +126,20 @@ def _type(arguments):
         print(f"{commandName}: not found")
 
 
-def _exit(arg):
-    sys.exit(0)
+def _exit(args: list[str]) -> None:
+    """
+        Exit shell
         
+        ARGS:
+            args: list[str] - exit code
+    """
+
+    exitCode = int(args[0])
+    sys.exit(exitCode)
+        
+
+# =============================================== Global variables ===============================
+
 COMMANDS = {
         "exit": _exit,
         "echo": echo,
@@ -93,10 +148,17 @@ COMMANDS = {
         "cd": _cd
         }
 
+PATH = os.environ["PATH"]
+PATH_LIST = PATH.split(os.pathsep)
+
+
 def main():
     while True:
         sys.stdout.write("$ ")
-        args = input().split()
+
+        # split raw string into command and (if any) "argument string"
+        rawArgs = input()
+        args = parse(rawArgs)
 
         command, arguments = args[0], args[1:]
 
