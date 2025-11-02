@@ -144,16 +144,19 @@ def echo(args: list[str], stream: None | int, fileName: None | str, mode: None |
             mode: None | str - file open mode
     """
 
-    output, error = ' '.join(args), ''
+    output = ' '.join(args) + '\n'
+    error = ''
 
     if stream:
         with open(fileName, mode) as f:
             if stream == 1:
-                print(output, file=f)
+                print(output, file=f, end='')
+                print(error, end='')
             elif stream == 2:
-                print(error, file=f)
+                print(output, end='')
+                print(error, file=f, end='')
     else:
-        print(output)
+        print(output, end='')
 
 
 def locate(fileName) -> str | None:
