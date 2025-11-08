@@ -1,13 +1,74 @@
 import sys
 import os
 from subprocess import PIPE, Popen, run # to execute code
+import readline
+
+# =============================================== Trie class =====================================
+
+class Node:
+    def __init__(self):
+        self.children = dict()
+        self.endNode = False
+
+
+class Trie:
+    def __init__(self):
+        self.root = Node()
+
+
+    def getMatchings(self, word: str) -> None | list[str]:
+        """
+            Given string "word" finds every word that has 
+            "word" as prefix
+
+            ARGS:
+                word: str - prefix
+
+            RETURNS:
+                matching: None | list[str] - list of words or None if no words found
+        """
+        # BEGIN FUNCTION
+        def dfs(root: Node, curWord: str) -> list[str]:
+            if root.endNode:
+                matches.append(curWord)
+
+            for (child, nextNode) in root.children.items():
+                dfs(nextNode, curWord + child)
+        # END FUNCTION
+
+        curNode = self.root
+        matches = []
+        
+        for char in word:
+            # no matching
+            if char not in curNode.children:
+                return None
+            curNode = curNode.children[char]
+
+        dfs(curNode, word)
+
+        return matches
+
+    def insert(self, word: str) -> None:
+        """
+            Inserts word into Trie
+
+            ARGS:
+                word: str - word to insert
+        """
+
+        curNode = self.root
+        for char in word:
+            curNode = curNode.children.setdefault(char, Node())
+        curNode.endNode = True
+
 
 
 # =============================================== Parsing functions ===============================
 
 def parse(rawArgs: str) -> list[str]:
     """
-        Parses raw string into arguments. Implimented using Finite State Machine
+        Parses raw string into arguments. Implimented as Finite State Machine
         
         ARGS:
             rawArgs: str - string with argument values
@@ -254,6 +315,34 @@ COMMANDS = {
 PATH = os.environ["PATH"]
 PATH_LIST = PATH.split(os.pathsep)
 
+# ====================================== readline config =======================
+
+readline.parse_and_bind("tab: complete")
+TRIE = Trie()
+
+commands = list(COMMANDS.keys())
+
+for c in commands:
+    TRIE.insert(c)
+
+def completer(text: str, state: int) -> str | None:
+    """
+        Custom complition function
+    """
+    line_buffer = readline.get_line_buffer()
+    cursor_pos = readline.get_endidx()
+
+    words = line_buffer[:cursor_pos]
+    word = words.split()[-1]
+
+    matches = TRIE.getMatchings(word)
+
+    try:
+        return matches[state]
+    except:
+        return None
+
+readline.set_completer(completer)
 
 def main():
     while True:
