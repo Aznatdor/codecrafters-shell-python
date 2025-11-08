@@ -359,6 +359,26 @@ def completer(text: str, state: int) -> str | None:
     except:
         return None
 
+
+def display(substring: str, matches: list[str], maxLen: int) -> None:
+    """
+        Custom display function
+
+        ARGS:
+            substring: str - word to be completed
+            matches: list[str] - possible complitions
+            maxLen: int - maximum length of match
+    """
+
+    print()
+    print(" ".join(matches))
+
+    sys.stdout.write("$ ")                          # write invitation
+    sys.stdout.write(readline.get_line_buffer())    # write current contents of buffer
+    sys.stdout.flush()                              # make sure everything is written
+
+
+readline.set_completion_display_matches_hook(display)
 readline.set_completer(completer)
 
 def main():
