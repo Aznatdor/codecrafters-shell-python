@@ -337,7 +337,7 @@ EXECUTABLES = findExes()
 readline.parse_and_bind("tab: complete")
 TRIE = Trie()
 
-commands = list(COMMANDS.keys()) + list(EXECUTABLES.keys())
+commands = list(COMMANDS.keys()) ## + list(EXECUTABLES.keys())
 
 for c in commands:
     TRIE.insert(c)
