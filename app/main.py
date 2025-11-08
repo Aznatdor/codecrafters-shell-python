@@ -30,7 +30,7 @@ class Trie:
         # BEGIN FUNCTION
         def dfs(root: Node, curWord: str) -> list[str]:
             if root.endNode:
-                matches.append(curWord)
+                matches.append(curWord + " ") # don't forgen space
 
             for (child, nextNode) in root.children.items():
                 dfs(nextNode, curWord + child)
@@ -231,18 +231,33 @@ def locate(fileName) -> str | None:
             fullPath: str | None - full path if file is executable and None otherwise
     """
 
-    for d in PATH_LIST:
-        # Such directory might not exist
-        try:
-            dirList = os.listdir(d)
-            fullPath = os.path.join(d, fileName)
-
-            # Check that the file exists and that it can be executed
-            if os.path.isfile(fullPath) and os.access(fullPath, os.X_OK):
-                return fullPath
-        except: pass
+    if fileName in EXECUTABLES:
+        return EXECUTABLES[fileName]
 
     return None
+
+def findExes() -> dict[str, str]:
+    """
+        Finds all executible files listed in PATH directories
+
+        RETURNS:
+            executables: dict[str, str] - list absolute pathes to executable files
+    """
+
+    executables = {}
+
+    for d in PATH_LIST:
+        try:
+            dirList = os.listdir(d)
+
+            for file in dirList:
+                fullPath = os.path.join(d, file)
+
+                if os.path.isfile(fullPath) and os.access(fullPath, os.X_OK):
+                    executables[file] = fullPath
+        except: pass
+    
+    return executables
 
 
 def _type(args: list[str], stream: None | int, fileName: None | str, mode: None | str) -> None:
@@ -315,12 +330,14 @@ COMMANDS = {
 PATH = os.environ["PATH"]
 PATH_LIST = PATH.split(os.pathsep)
 
+EXECUTABLES = findExes()
+
 # ====================================== readline config =======================
 
 readline.parse_and_bind("tab: complete")
 TRIE = Trie()
 
-commands = list(COMMANDS.keys())
+commands = list(COMMANDS.keys()) + list(EXECUTABLES.keys())
 
 for c in commands:
     TRIE.insert(c)
