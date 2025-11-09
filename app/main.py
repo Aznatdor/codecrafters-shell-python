@@ -107,6 +107,12 @@ def parse(rawArgs: str) -> list[str]:
                 inSingleQuote = True
             elif char == '"':
                 inDoubleQuote = True
+            elif char == '|':
+                if currentArg:
+                    args.append(currentArg)
+                    currentArg = ''
+
+                args.append('|')
             elif char in ">":
                 if currentArg:
                     args.append(currentArg)
@@ -136,41 +142,41 @@ def parse(rawArgs: str) -> list[str]:
 # ============================================= Builtin functions ==================================
 
 
-def _pwd(args: list[str], stream: None | int, fileName: None | str, mode: None | str) -> None:
+def _pwd(args: list[str], stdin: str) -> tuple[str, str]:
     """
         Prints current working directory
 
         ARGS:
             args: list[str] - for compatability
-            stream: None | int - if specified, stream to be redirected
-            fileName: None | str - fileName to redirect the output
-            mode: None | str - file open mode
+            stdin: str | None - argument from stdin
+
+        RETURNS:
+            output: str - output in stdout stream
+            error: str - output in stderr stream
     """
 
     output, error = os.getcwd(), ""
 
-    if stream:
-        with open(fileName, mode) as f:
-            if stream == 1:
-                print(output, file=f)
-            elif stream == 2:
-                print(error, file=f)
-    else:
-        print(os.getcwd())
+    return output, error
 
 
-def _cd(args: list[str], stream: None | int, fileName: None | str, mode: None | str) -> None:
+def _cd(args: list[str], stdin: str | None) -> tuple[str, str]:
     """
         Changes current directory
 
         ARGS:
             args: list[str] - relative path to the current directory or empty list
-            stream: None | int - if specified, stream to be redirected
-            fileName: None | str - fileName to redirect the output
-            mode: None | str - file open mode
+            stdin: str | None - argument from stdin
+
+        RETURNS:
+            output: str - output in stdout stream
+            error: str - output in stderr stream
     """
-    if not args or args[0] == "~":
-        dirName = os.environ["HOME"]
+    if not args:
+        if args[0] == "~":
+            dirName = os.environ["HOME"]
+        else:
+            dirName = stdin
     else:
         dirName = args[0]
 
@@ -178,47 +184,32 @@ def _cd(args: list[str], stream: None | int, fileName: None | str, mode: None | 
 
     try:
         os.chdir(dirName)
-        output = ""
     except:
         error = f"cd: {dirName}: No such file or directory\n"
 
-    if stream:
-        with open(fileName, mode) as f:
-            if stream == 1:
-                print(output, file=f)       # redirect output
-                print(error, end='')        # print error
-            elif stream == 2:
-                print(error, file=f, end='')
-    else:
-        if error:
-            print(error, end='')
+    return output, error
 
 
-def echo(args: list[str], stream: None | int, fileName: None | str, mode: None | str) -> None:
+def echo(args: list[str], stdin: str | None) -> tuple[str, str]:
     """
         Prints its arguments into stdout
 
         ARGS:
             args: list[str] - strings to print
-            stream: None | int - if specified, stream to be redirected
-            fileName: None | str - fileName to redirect the output
-            mode: None | str - file open mode
+            stdin: str | None - argument from stdin
     """
 
-    output = ' '.join(args) + '\n'
+    if stdin is not None:
+        args = parse(stdin)
+
+    output = ' '.join(args)
+
+    if output[-1] != "\n":
+        output += "\n"
+
     error = ''
 
-    if stream:
-        with open(fileName, mode) as f:
-            if stream == 1:
-                print(output, file=f, end='')
-                print(error, end='')
-            elif stream == 2:
-                print(output, end='')
-                print(error, file=f, end='')
-    else:
-        print(output, end='')
-
+    return output, error
 
 def locate(fileName) -> str | None:
     """
@@ -260,16 +251,18 @@ def findExes() -> dict[str, str]:
     return executables
 
 
-def _type(args: list[str], stream: None | int, fileName: None | str, mode: None | str) -> None:
+def _type(args: list[str], stdin: str | None) -> tuple[str, str]:
     """
-        Prints type of a program, i.g. if it is a builtin one or can be found
+        Prints type of a program, i.e. if it is a builtin one or can be found
         in one of the directory specified in PATH variable
 
         ARGS:
             args: list[str] - list of arguments. Here, it is list of lenth 1 with command name
-            stream: None | int - if specified, stream to be redirected
-            fileName: None | str - fileName to redirect the output
-            mode: None | str - file open mode
+            stdin: str | None - argument from stdin
+
+        RETURNS:
+            output: str - output in stdout stream
+            error: str - output in stderr stream
     """
 
     commandName = args[0]
@@ -283,40 +276,37 @@ def _type(args: list[str], stream: None | int, fileName: None | str, mode: None 
     else:
         error = f"{commandName}: not found\n"
 
-    if stream:
-        with open(fileName, mode) as f:
-            if stream == 1:
-                print(output, file=f, end='')
-                print(error, end='')
-            elif stream == 2:
-                print(output, end='')
-                print(error, file=f, end='')
-    else:
-        print(output if output else error, end='')
+    return output, error
 
 
-def _exit(args: list[str], stream: None | int, fileName: None | str, mode: None | str) -> None:
+
+def _exit(args: list[str], stdin: str | None) -> tuple[str, str]:
     """
         Exit shell
         
         ARGS:
             args: list[str] - exit code
-            stream: None | int - if specified, stream to be redirected
-            fileName: None | str - fileName to redirect the output
-            mode: None : str - file open mode
+            stdin: str | None - argument from stdin
+
+        RETURNS:
+            output: str - output in stdout stream
+            error: str - output in stderr stream
     """
 
-    exitCode = int(args[0])
+    output, error = "", ""
 
-    if stream == 1:
-        with open(fileName, mode) as f:
-            print(exitCode, file=f)
-    elif stream == 2:
-        pass                # no errors currently
-    else:
-        sys.exit(exitCode)
+    try:
+        exitCode = int(args[0])
+    except:
+        error = "exit: Not enough arguments"
+
+    if len(args) > 1: error = "exit: Too much arguments"
+
+    sys.exit(exitCode)
+
+    # I don't know how can I pass further this output
+    return output, error
         
-
 # =============================================== Global variables ===============================
 
 COMMANDS = {
@@ -381,6 +371,99 @@ def display(substring: str, matches: list[str], maxLen: int) -> None:
 readline.set_completion_display_matches_hook(display)
 readline.set_completer(completer)
 
+# =================================================== Tokenizer ========================
+
+class Token:
+    def __init__(self, commandName: str, args: list[str]):
+        self.commandName = commandName
+        self.args = args
+
+    def __repr__(self):
+        return self.commandName
+
+COMMAND = 1
+ARG = 2
+REDIRECT = 3
+FILE = 4
+
+class RawToken:
+    def __init__(self, value, tokenType):
+        self.value = value
+        self.type = tokenType
+
+    # To debug
+    def __repr__(self):
+        return f"({self.value}, {self.type})"
+
+
+def tokenize(parsedString: list[str]) -> list[RawToken]:
+    tokens = []
+
+    i = 0
+    while i < len(parsedString):
+        currWord = parsedString[i]
+
+        if (i == 0) or tokens[-1].value == '|':
+            currToken = RawToken(currWord, COMMAND)
+        elif '>' in currWord: # file descriptor is not specified. Use default 1 (stdout)
+            currToken = RawToken("1" + currWord, REDIRECT)
+        elif '>' in tokens[-1].value:
+            currToken = RawToken(currWord, FILE)
+        elif currWord.isdigit():
+            if (i+1) < len(parsedString) and '>' in parsedString[i+1]:
+                currToken = RawToken(currWord + parsedString[i+1], REDIRECT)  
+                tokens.append(currToken)
+                i += 2
+                continue
+            elif (i-1) >= 0 and tokens[-1].type in [COMMAND, ARG]:
+                currToken = RawToken(currWord, ARG)
+        elif currWord == '|':
+            currToken = RawToken(currWord, REDIRECT)
+        else:
+            currToken = RawToken(currWord, ARG)
+
+        tokens.append(currToken)
+        i += 1
+
+    return tokens
+
+
+def linkTokens(rawTokens: list[RawToken]) -> list[Token]:
+    tokens = []
+    
+    i = 0
+
+    while i < len(rawTokens):
+        commandName = rawTokens[i].value
+        argList = []
+
+        i += 1
+        while i < len(rawTokens) and rawTokens[i].type == ARG:
+            argList.append(rawTokens[i].value)
+            i += 1
+
+        if i < len(rawTokens):
+            currToken = Token(commandName, argList)
+
+            if rawTokens[i].value == "|":
+                tokens.append(currToken)
+                i += 1                      
+            elif '>' in rawTokens[i].value:
+                tokens.append(currToken)
+
+                d = rawTokens[i].value[0] if rawTokens[i].value[0].isdigit() else None
+                mode = 'a' if '>>' in rawTokens[i].value else 'w'
+                fileName = rawTokens[i+1].value
+
+                return tokens, (d, mode, fileName)
+    else:
+        currToken = Token(commandName, argList)
+        tokens.append(currToken)
+
+    return tokens, (None, None, None)
+
+
+
 def main():
     while True:
         sys.stdout.write("$ ")
@@ -388,6 +471,45 @@ def main():
         # split raw string into command and (if any) "argument string"
         rawArgs = input()
         args = parse(rawArgs)
+
+        tokens = tokenize(args)
+
+        commands, (d, mode, fileName) = linkTokens(tokens)
+
+        prevOut = None
+
+        for command in commands:
+            commandName, commandArgs = command.commandName, command.args
+
+            if commandName in COMMANDS:
+                output, error = COMMANDS[commandName](commandArgs, prevOut)
+                prevOut = output
+
+            elif (fullPath := locate(commandName)) is not None:
+                proc = Popen([commandName] + commandArgs, stdin=PIPE, stdout=PIPE, stderr=PIPE, text=True)
+
+                try:
+                    output, error = proc.communicate(input=prevOut, timeout=15)
+                except:
+                    proc.kill()
+                    output, error = proc.communicate()
+
+                prevOut = output
+            else:
+                print(f"{commandName}: command not found")
+
+        # Manage redirections
+        if fileName is None:
+            print(output + error, end='')
+        else:
+            with open(fileName, mode) as f:
+                if d == "1":
+                    print(output, file=f, end='')
+                elif d == "2":
+                    print(error, file=f, end='')
+
+        continue
+
 
         command, arguments = args[0], args[1:]
         stream, fileName, mode = None, None, None
