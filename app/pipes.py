@@ -1,149 +1,165 @@
 import os
 import signal
+import sys
+import app.file_utils as file_utils
+import app.builtin as builtin
 
-def runMultipleProc(cmds):
+def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None):
     """
         Creates UNIX pipeline for commands in cmds list.
 
         ARGS:
-            cmds: list[Token] - list of at least two tokens
+            cmds: list[Token] - list of tokens to be run
+            redirect: tuple[str] - is not None, consists of file desctiptor 
+                                    to be redirectred, file open mode
+                                    and name of the file to be opened
     """
 
-    pids = []
-    rs, ws = [], []
-
-    rCur, wCur = os.pipe()
-
-    rs.append(rCur); ws.append(wCur)
-
-    cFst = cmds.pop(0)
-    cLst = cmds.pop()
-
-    # For the first command we should reroute only stdout
-    pid = os.fork()
-    pids.append(pid)
-
-    if pids[-1] == 0:
-        cName = cFst.commandName
-        cArgs = cFst.args
+    if len(cmds) == 1:
+        c = cmds[0]
+        cName = c.commandName
+        cArgs = c.args
 
         args = [cName, cName] + cArgs
 
-        os.dup2(wCur, 1) 
-        os.close(wCur)
-        os.close(rCur)
-        os.execlp(*args)
+        oldD = None
 
-    rPrev, wPrev = rCur, wCur
+        if redirect is not None:
+            d, mode, fileName = redirect
 
-    # For intermediate commads reroute both
-    for c in cmds:
-        rCur, wCur = os.pipe()
-        rs.append(rCur); ws.append(wCur)
+            flags = os.O_WRONLY | os.O_CREAT
 
-        pid = os.fork()
-        pids.append(pid)
+            if mode == "a":
+                flags |= os.O_APPEND
+            else:
+                flags |= os.O_TRUNC
 
-        if pids[-1] == 0:
-            cName = c.commandName
-            cArgs = c.args
+            fileDesc = os.open(fileName, flags, 0o644)
+            
+            oldD = os.dup(d)
+            os.dup2(fileDesc, d)
+            os.close(fileDesc)
 
-            args = [cName, cName] + cArgs
+        if cName in builtin.BUILTINS:
+            builtin.BUILTINS[cName](cArgs)
+        elif cName in file_utils.EXECUTABLES:
+            pid = os.fork()
 
-            os.dup2(rPrev, 0)
-            os.dup2(wCur, 1)
+            if pid == 0:
+                os.execlp(*args)
 
-            os.close(rPrev)
-            os.close(wPrev)
-            os.close(wCur)
-            os.close(rCur)
+            os.wait()
+        else:
+            sys.stderr.write(f"{cName}: command not found\n")
+            sys.stderr.flush()
 
-            os.execlp(*args)
+        # Return descriptors as they were 
+        if oldD is not None:
+            os.dup2(oldD, d)
+            os.close(oldD)
 
-        rPrev, wPrev = rCur, wCur
+        return 0
 
-    # For the last reroute only stdin
-    rCur, wCur = os.pipe()
-    rs.append(rCur); ws.append(wCur)     
+    else:
+        pids = []
+        rs, ws = [], []
 
-    pid = os.fork()
-    pids.append(pid)
+        rPrev, wPrev = None, None
 
-    if pids[-1] == 0:
-        cName = cLst.commandName
-        cArgs = cLst.args
+        isLast = False
 
-        args = [cName, cName] + cArgs
+        for i, c in enumerate(cmds):
+            rCur, wCur = os.pipe()
+            rs.append(rCur); ws.append(wCur)
 
-        os.dup2(rPrev, 0)
+            if i == len(cmds) - 1:
+                os.close(wCur)
+                wCur = None
 
-        os.close(rCur)
-        os.close(wCur)
-        os.close(rPrev)
-        os.close(wPrev)
+                isLast = True
 
-        os.execlp(*args)
+            pid = os.fork()
+            pids.append(pid)
 
-    # Close all file descriptors in the parent process
-    for r, w in zip(rs, ws):
-        os.close(w)
-        os.close(r)
+            if pids[-1] == 0:
+                cName = c.commandName
+                cArgs = c.args
 
-    pidLst = pids.pop()
-    # Wait for the last process to end
-    os.waitpid(pidLst, 0)
+                args = [cName, cName] + cArgs
 
-    # Terminate all other processes
-    for pid in reversed(pids):
-        os.kill(pid, signal.SIGTERM)
-        os.waitpid(pid, 0)
+                
+                # overload pipe if there's redirect in the end
+                if isLast and redirect is not None:
+                    d, mode, fileName = redirect
 
+                    flags = os.O_WRONLY | os.O_CREAT
 
-def runProc(c1, c2):
-    r, w = os.pipe()
+                    if mode == "a":
+                        flags |= os.O_APPEND
+                    else:
+                        flags |= os.O_TRUNC
 
-    pid1 = os.fork()
+                    fileDesc = os.open(fileName, flags, 0o644)
+                    
+                    os.dup2(fileDesc, d)
+                    os.close(fileDesc)
 
-    if pid1 == 0:
-        commandName1 = c1.commandName
-        args = [commandName1] * 2 + c1.args
+                # Close descriptors
 
-        os.dup2(w, 1)
-        os.close(w)
-        os.close(r)
-        os.execlp(*args)
+                if rPrev is not None:
+                    os.dup2(rPrev, 0)
+                if wCur is not None:
+                    os.dup2(wCur, 1)
 
+                if rPrev is not None:
+                    os.close(rPrev)
+                if wPrev is not None:
+                    os.close(wPrev)
 
-    pid2 = os.fork()
+                if wCur is not None:
+                    os.close(wCur)
 
-    if pid2 == 0:
-        commandName2 = c2.commandName
-        args = [commandName2] * 2 + c2.args
+                os.close(rCur)
 
-        os.dup2(r, 0)
-        os.close(w)
-        os.close(r)
-        os.execlp(*args)
+                if cName in builtin.BUILTINS:
+                    builtin.BUILTINS[cName](cArgs)
+                    sys.exit(0)
+                elif cName in file_utils.EXECUTABLES:
+                    os.execlp(*args)
 
-    os.close(w)
-    os.close(r)
+            rPrev, wPrev = rCur, wCur
 
-    os.waitpid(pid2, 0)
+        # Close all file descriptors in the parent process
+        for r, w in zip(rs, ws):
+            try: # If we try to close alredy closed descriptor
+                os.close(w)
+            except: pass
+            try:
+                os.close(r)
+            except: pass
 
-    os.kill(pid1, signal.SIGTERM)
-    os.waitpid(pid1, 0)
+        # Wait for the last process to end
+        if isLast:
+            pidLst = pids.pop()
+            os.waitpid(pidLst, 0)
 
-    return 0
+        # Terminate all other processes
+        for pid in reversed(pids):
+            os.kill(pid, signal.SIGTERM)
+            os.waitpid(pid, 0)
 
 
 def main():
     inputLine = input("$ ")
 
-    commands = parser.getArgs(inputLine)
+    commands, redirect = parser.getArgs(inputLine)
 
-    runMultipleProc(commands)
+    runMultipleProc(commands, redirect)
 
 
 if __name__ == "__main__":
+    import builtin
     import parser
     main()
+else:
+    import app.builtin as builtin
