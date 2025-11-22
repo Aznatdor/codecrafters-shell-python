@@ -45,17 +45,37 @@ def parse(rawArgs: str) -> list[str]:
                     currentArg = ''
 
                 args.append('|')
+            elif char.isdigit(): # head -n 5 >> file is not the same as head -n 5>> file!!!
+                if i + 2 < len(rawArgs) and rawArgs[i+1:i+3] == ">>":
+                    if currentArg:
+                        args.append(currentArg)
+                        currentArg = ''
+
+                    args.append(char + ">>")
+                    i+=3
+                    continue
+                elif i + 1 < len(rawArgs) and rawArgs[i+1] == '>':
+                    if currentArg:
+                        args.append(currentArg)
+                        currentArg = ''
+
+                    args.append(char + '>')
+                    i+=2
+                    continue
+                else:
+                    currentArg += char
+
             elif char in ">":
                 if currentArg:
                     args.append(currentArg)
-                    currentArg = ""
+                    currentArg = ''
 
-                if rawArgs[i+1] == ">":
-                    args.append(">>")
+                if rawArgs[i+1] == '>':
+                    args.append('>>')
                     i += 2
                     continue
                 else:
-                    args.append(">")
+                    args.append('>')
 
             elif char == " ":
                 if currentArg:
@@ -103,18 +123,13 @@ def tokenize(parsedString: list[str]) -> list[RawToken]:
 
         if (i == 0) or tokens[-1].value == '|':
             currToken = RawToken(currWord, COMMAND)
-        elif '>' in currWord: # file descriptor is not specified. Use default 1 (stdout)
-            currToken = RawToken("1" + currWord, REDIRECT)
+        elif '>' in currWord: 
+            if not currWord[0].isdigit():
+                currToken = RawToken("1" + currWord, REDIRECT)
+            else:
+                currToken = RawToken(currWord, REDIRECT)
         elif '>' in tokens[-1].value:
             currToken = RawToken(currWord, FILE)
-        elif currWord.isdigit():
-            if (i+1) < len(parsedString) and '>' in parsedString[i+1]:
-                currToken = RawToken(currWord + parsedString[i+1], REDIRECT)  
-                tokens.append(currToken)
-                i += 2
-                continue
-            elif (i-1) >= 0 and tokens[-1].type in [COMMAND, ARG]:
-                currToken = RawToken(currWord, ARG)
         elif currWord == '|':
             currToken = RawToken(currWord, REDIRECT)
         else:
@@ -152,16 +167,16 @@ def linkTokens(rawTokens: list[RawToken]) -> list[Token]:
                 mode = 'a' if '>>' in rawTokens[i].value else 'w'
                 fileName = rawTokens[i+1].value
 
-                return tokens, (d, mode, fileName)
+                return tokens, (int(d), mode, fileName)
     else:
         currToken = Token(commandName, argList)
         tokens.append(currToken)
 
-    return tokens, (None, None, None)
+    return tokens, None
 
 
 def getArgs(inputLine: str):
     parsedString = parse(inputLine)
     rawTokens = tokenize(parsedString)
-    tokens, (d, mode, fileName) = linkTokens(rawTokens)
-    return tokens, (d, mode, fileName)
+    tokens, redirect = linkTokens(rawTokens)
+    return tokens, redirect
