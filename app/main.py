@@ -46,8 +46,10 @@ def display(substring: str, matches: list[str], maxLen: int) -> None:
             maxLen: int - maximum length of match
     """
 
-    print()
-    print(" ".join(matches))
+    sys.stdout.write('\n')
+    sys.stdout.write(" ".join(matches))
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
     sys.stdout.write("$ ")                          # write invitation
     sys.stdout.write(readline.get_line_buffer())    # write current contents of buffer
@@ -65,7 +67,7 @@ def main():
         rawArgs = input()
 
         commands, redirect = parser.getArgs(rawArgs)
-        pipes.runMultipleProc(commands, redirect)
+        pipes.runMultipleProc(commands, redirect, rawArgs)
 
 
 if __name__ == "__main__":
