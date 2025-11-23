@@ -3,6 +3,8 @@ import app.file_utils as file_utils
 import os
 import readline
 
+PREVLEN = 0 # for -a flag. history -a should append only new commands
+
 def history(args: list[str]) -> None:
     """
         Prints out history of commands
@@ -12,6 +14,7 @@ def history(args: list[str]) -> None:
         ARGS:
             args: list[str] - list of arguments
     """
+    global PREVLEN
 
     length = readline.get_current_history_length()
 
@@ -25,11 +28,31 @@ def history(args: list[str]) -> None:
                 sys.stdout.write(f"{i:5} {cmd}\n")
                 sys.stdout.flush()
         elif args[0] == "-r":
-            historyFileName = args[1]
+            try:
+                historyFileName = args[1]
+            except:
+                historyFileName = "./history"
+
             readline.read_history_file(historyFileName)
         elif args[0] == "-w":
-            historyFileName = args[1]
+            try:
+                historyFileName = args[1]
+            except:
+                historyFileName = "./history"
+
             readline.write_history_file(historyFileName)
+        elif args[0] == "-a":
+            try:
+                historyFileName = args[1]
+            except:
+                historyFileName = "./history"
+
+            # Create file if it does not exists
+            fd = os.open(historyFileName, os.O_CREAT)
+            os.close(fd)
+
+            readline.append_history_file(length-PREVLEN, historyFileName)
+            PREVLEN = length
     else:
         for i in range(1, length + 1):
             cmd = readline.get_history_item(i)
