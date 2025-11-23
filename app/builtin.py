@@ -2,16 +2,23 @@ import sys
 import app.file_utils as file_utils
 import os
 
-def history(args: list[HistoryEntry]) -> None:
+def history(args: list[list[HistoryEntry] | str]) -> None:
     """
         Prints out history of commands
 
         ARGS:
-            args: list[HistoryEntry] - list of commadns
-
+            args: list[list[HistoryEntry] | str] - command argument.
+                args[0] expected to be list of commands
+                args[1] is optional and specifies number of entries to show
     """
 
-    output = ''.join(map(str, args))
+    historyList = args[0]
+
+    if type(args[-1]) is str and args[-1].isdigit():
+        numCommands = int(args[-1])
+        output = ''.join(map(str, historyList[-numCommands:]))
+    else:
+        output = ''.join(map(str, historyList))
 
     sys.stdout.write(output)
     sys.stdout.flush()
