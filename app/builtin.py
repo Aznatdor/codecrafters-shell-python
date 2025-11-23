@@ -1,27 +1,35 @@
 import sys
 import app.file_utils as file_utils
 import os
+import readline
 
-def history(args: list[list[HistoryEntry] | str]) -> None:
+def history(args: list[str]) -> None:
     """
         Prints out history of commands
 
+        Use "history {num}" to limit history entries
+
         ARGS:
-            args: list[list[HistoryEntry] | str] - command argument.
-                args[0] expected to be list of commands
-                args[1] is optional and specifies number of entries to show
+            args: list[str] - list of arguments
     """
 
-    historyList = args[0]
+    length = readline.get_current_history_length()
 
-    if type(args[-1]) is str and args[-1].isdigit():
-        numCommands = int(args[-1])
-        output = ''.join(map(str, historyList[-numCommands:]))
+    if args:
+        num = int(args[0])
+
+        for i in range(length + 1 - num, length + 1):
+            cmd = readline.get_history_item(i)
+
+            sys.stdout.write(f"{i:5} {cmd}\n")
+            sys.stdout.flush()
     else:
-        output = ''.join(map(str, historyList))
+        for i in range(1, length + 1):
+            cmd = readline.get_history_item(i)
 
-    sys.stdout.write(output)
-    sys.stdout.flush()
+            sys.stdout.write(f"{i:5} {cmd}\n")
+            sys.stdout.flush()
+
 
 def _exit(args: list[str]) -> None:
 
