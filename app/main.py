@@ -59,10 +59,14 @@ def display(substring: str, matches: list[str], maxLen: int) -> None:
 readline.set_completion_display_matches_hook(display)
 readline.set_completer(completer)
 
+readline.set_auto_history(False) # auto add doesn't add duplicates
+
 def main():
     while True:
         # split raw string into command and (if any) "argument string"
         rawArgs = input("$ ")
+
+        readline.add_history(rawArgs) # I need duplicates to be added
 
         commands, redirect = parser.getArgs(rawArgs)
         pipes.runMultipleProc(commands, redirect)
