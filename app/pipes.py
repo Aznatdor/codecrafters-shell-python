@@ -4,7 +4,17 @@ import sys
 import app.file_utils as file_utils
 import app.builtin as builtin
 
-def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None):
+class HistoryEntry:
+    def __init__(self, entryName, number):
+        self.name = entryName
+        self.num = number
+
+    def __str__(self):
+        return f"{self.num}. {self.name}\n"
+
+HISTORY = []
+
+def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None, rawCommand: str):
     """
         Creates UNIX pipeline for commands in cmds list.
 
@@ -13,7 +23,11 @@ def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None):
             redirect: tuple[str] - is not None, consists of file desctiptor 
                                     to be redirectred, file open mode
                                     and name of the file to be opened
+            rawCommand: str - full command string to be added into HISTORY list
     """
+
+    historyEntry = HistoryEntry(rawCommand, len(HISTORY) + 1)
+    HISTORY.append(historyEntry)
 
     if len(cmds) == 1:
         c = cmds[0]
@@ -21,6 +35,10 @@ def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None):
         cArgs = c.args
 
         args = [cName, cName] + cArgs
+
+        # This way is just easier
+        if cName == "history":
+            cArgs = HISTORY
 
         oldD = None
 
