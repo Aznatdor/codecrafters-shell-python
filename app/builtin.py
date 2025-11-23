@@ -2,6 +2,20 @@ import sys
 import app.file_utils as file_utils
 import os
 
+def history(args: list[HistoryEntry]) -> None:
+    """
+        Prints out history of commands
+
+        ARGS:
+            args: list[HistoryEntry] - list of commadns
+
+    """
+
+    output = ''.join(map(str, args))
+
+    sys.stdout.write(output)
+    sys.stdout.flush()
+
 def _exit(args: list[str]) -> None:
 
     if not args:
@@ -94,5 +108,6 @@ BUILTINS = {
         "echo": echo,
         "type": _type,
         "pwd": _pwd,
-        "cd": _cd
+        "cd": _cd,
+        "history": history
         }
