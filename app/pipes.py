@@ -10,7 +10,7 @@ class HistoryEntry:
         self.num = number
 
     def __str__(self):
-        return f"{self.num}. {self.name}\n"
+        return f"\t{self.num} {self.name}\n"
 
 HISTORY = []
 
