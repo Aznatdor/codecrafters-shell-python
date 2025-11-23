@@ -15,7 +15,7 @@ def history(args: list[str]) -> None:
 
     length = readline.get_current_history_length()
 
-    if args:
+    if args and args[0].isdigit():
         num = int(args[0])
 
         for i in range(length + 1 - num, length + 1):
@@ -23,6 +23,9 @@ def history(args: list[str]) -> None:
 
             sys.stdout.write(f"{i:5} {cmd}\n")
             sys.stdout.flush()
+    elif args and args[0] == "-r":
+        historyFileName = args[1]
+        readline.read_history_file(historyFileName)
     else:
         for i in range(1, length + 1):
             cmd = readline.get_history_item(i)
