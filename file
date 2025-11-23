@@ -1,7 +1,6 @@
-builtin.py
-file_utils.py
-main.py
-parser.py
-pipes.py
-__pycache__
-trie.py
+1. echo hello
+2. cat file
+3. seq 1 10
+4. history
+5. history | grep history
+6. history > file
