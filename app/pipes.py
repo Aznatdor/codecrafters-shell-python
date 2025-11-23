@@ -38,7 +38,7 @@ def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None, rawCommand: 
 
         # This way is just easier
         if cName == "history":
-            cArgs = HISTORY
+            cArgs = [HISTORY] + cArgs
 
         oldD = None
 
