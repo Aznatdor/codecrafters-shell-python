@@ -66,15 +66,26 @@ readline.set_auto_history(False) # auto add doesn't add duplicates
 
 def main():
     # On startup configure history file
-    try:
-        HISTFILE = os.environ["HISTFILE"]
-
+    if HISTFILE := os.environ.get("HISTFILE"):
         with open(HISTFILE, 'r') as f:
             for line in f:
                 readline.add_history(line.strip())
-    except:
-        HISTFILE = os.path.join(os.path.expanduser("~"), ".my_shell_history")
 
+        def saveHistory() -> None:
+            """
+                Saves history to the file specified in HISTFILE variable
+            """
+
+            with open(HISTFILE, 'w') as f:
+                length = readline.get_current_history_length()
+
+                for i in range(1, length + 1):
+                    cmd = readline.get_history_item(i)
+                    f.write(cmd + "\n")
+
+
+        # Ensures that history would be saved
+        atexit.register(saveHistory)
 
     while True:
         # split raw string into command and (if any) "argument string"
