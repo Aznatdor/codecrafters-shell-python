@@ -61,13 +61,11 @@ readline.set_completer(completer)
 
 def main():
     while True:
-        sys.stdout.write("$ ")
-
         # split raw string into command and (if any) "argument string"
-        rawArgs = input()
+        rawArgs = input("$ ")
 
         commands, redirect = parser.getArgs(rawArgs)
-        pipes.runMultipleProc(commands, redirect, rawArgs)
+        pipes.runMultipleProc(commands, redirect)
 
 
 if __name__ == "__main__":
