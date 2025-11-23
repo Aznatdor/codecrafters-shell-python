@@ -4,17 +4,7 @@ import sys
 import app.file_utils as file_utils
 import app.builtin as builtin
 
-class HistoryEntry:
-    def __init__(self, entryName, number):
-        self.name = entryName
-        self.num = number
-
-    def __str__(self):
-        return f"\t{self.num} {self.name}\n"
-
-HISTORY = []
-
-def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None, rawCommand: str):
+def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None):
     """
         Creates UNIX pipeline for commands in cmds list.
 
@@ -26,19 +16,12 @@ def runMultipleProc(cmds: list[Token], redirect: tuple[str] | None, rawCommand: 
             rawCommand: str - full command string to be added into HISTORY list
     """
 
-    historyEntry = HistoryEntry(rawCommand, len(HISTORY) + 1)
-    HISTORY.append(historyEntry)
-
     if len(cmds) == 1:
         c = cmds[0]
         cName = c.commandName
         cArgs = c.args
 
         args = [cName, cName] + cArgs
-
-        # This way is just easier
-        if cName == "history":
-            cArgs = [HISTORY] + cArgs
 
         oldD = None
 
