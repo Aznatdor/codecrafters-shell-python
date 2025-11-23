@@ -1,6 +1,7 @@
 import sys
 import os
 import readline
+import atexit
 
 import app.trie as trie
 import app.parser as parser
@@ -61,7 +62,20 @@ readline.set_completer(completer)
 
 readline.set_auto_history(False) # auto add doesn't add duplicates
 
+
+
 def main():
+    # On startup configure history file
+    try:
+        HISTFILE = os.environ["HISTFILE"]
+
+        with open(HISTFILE, 'r') as f:
+            for line in f:
+                readline.add_history(line.strip())
+    except:
+        HISTFILE = os.path.join(os.path.expanduser("~"), ".my_shell_history")
+
+
     while True:
         # split raw string into command and (if any) "argument string"
         rawArgs = input("$ ")
